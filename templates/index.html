@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Color Palette</title>
+    <link rel="stylesheet" href="/static/style_1.css?v=123">
+
+
+    <style>
+/* ===== PREVIEW (SCROLLING WHEEL) ===== */
+
+/* visible area (only 3 rows) */
+.preview-wrapper {
+    height: 268px; /* 3 rows visible */
+    overflow: hidden;
+    position: relative;
+}
+
+/* moving container */
+.preview-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+
+    display: grid;
+    gap: 14px;
+
+    animation: scrollUp 3s linear infinite;
+}
+
+/* rows */
+.preview-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+/* boxes */
+.preview-row span {
+    height: 80px;
+    border-radius: 14px;
+    display: block;
+}
+
+/* animation */
+@keyframes scrollUp {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-282px); /* 3 rows height */
+    }
+}
+</style>
+
+
+
+</head>
+<body>
+<div class="page-shell">
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-left">
+            <div class="eyebrow">AI-powered intelligent color palette generator</div>
+            <h1>Color palettes that feel curated, not random.</h1>
+            <p class="hero-text">
+                Generate as a guest. Sign in to unlock personalization and learning.
+            </p>
+            <div class="feature-pills">
+                <span>🎨 Guest generate</span>
+                <span>⚡ Member personalization</span>
+                <span>🧠 Learns from likes</span>
+            </div>
+        </div>
+
+        <div class="hero-right">
+            <div class="preview-wrapper">
+    		<div class="preview-card" id="card"></div>
+	    </div>
+        </div>
+    </section>
+
+    <!-- ACCOUNT + ACCESS -->
+    <section class="top-grid">
+        <div class="panel">
+            <div class="panel-head">
+                <h2>Account</h2>
+                <div id="authStatus"></div>
+            </div>
+            <div class="auth-form compact">
+                <input id="email" placeholder="Email">
+                <input id="password" type="password" placeholder="Password">
+                <div id="authButtons" class="btn-row"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Access</h2>
+            <div class="access-grid">
+                <div class="mini-card">
+                    <strong>👤 Guest</strong>
+                    <p>Generate palettes</p>
+                </div>
+                <div class="mini-card">
+                    <strong>⭐ Member</strong>
+                    <p>Style · Temp · Brightness</p>
+                </div>
+                <div class="mini-card">
+                    <strong>🧠 Learning</strong>
+                    <p>Likes shape future picks</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- GENERATE -->
+    <section class="panel">
+        <div class="panel-head">
+            <h2>Generate</h2>
+        </div>
+
+        <div class="controls-grid">
+            <div>
+                <label>Count</label>
+                <input type="number" id="numPalettes" value="5" min="1" max="15">
+            </div>
+
+            <div id="personalizationGroup" class="personalization-grid">
+                <div>
+                    <label>Style</label>
+                    <select id="style">
+                        <option value="vibrant">Vibrant</option>
+                        <option value="pastel">Pastel</option>
+                        <option value="minimal">Minimal</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Temperature</label>
+                    <select id="temperature">
+                        <option value="any">Any</option>
+                        <option value="warm">Warm</option>
+                        <option value="cool">Cool</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Brightness</label>
+                    <select id="brightness">
+                        <option value="any">Any</option>
+                        <option value="bright">Bright</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="palette-actions">
+                <button class="generate-btn" onclick="generatePalette()">Generate</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="panel">
+        <div class="panel-head"><h2>Results</h2></div>
+        <div id="palette" class="palettes-grid"></div>
+    </section>
+
+    <!-- LIKED -->
+    <section id="likedSection" class="panel" style="display:none;">
+        <div class="panel-head"><h2>Liked palettes</h2></div>
+        <div id="likedPalettes" class="liked-grid"></div>
+    </section>
+
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="/static/script.js?v=123"></script>
+<script>
+  
+
+document.addEventListener("DOMContentLoaded", () => {
+    const card = document.getElementById("card");
+
+    function fillRow(row) {
+        row.innerHTML = "";
+        for (let i = 0; i < 5; i++) {
+            const box = document.createElement("span");
+            const color = `rgb(${Math.floor(Math.random()*256)}, 
+                               ${Math.floor(Math.random()*256)}, 
+                               ${Math.floor(Math.random()*256)})`;
+            box.style.background = color;
+            row.appendChild(box);
+        }
+    }
+
+    function createRow() {
+        const row = document.createElement("div");
+        row.className = "preview-row";
+        fillRow(row);
+        return row;
+    }
+
+    // Create 6 rows total: top set (visible first) + bottom set (scrolls in)
+    for (let i = 0; i < 6; i++) {
+        card.appendChild(createRow());
+    }
+
+    // ✅ Refresh the TOP 3 rows (indices 0,1,2) at the EXACT moment 
+    // the animation loops back to start. At that instant, the top rows
+    // are off-screen above (about to be hidden by overflow), so the user
+    // never sees them change.
+    card.addEventListener("animationiteration", () => {
+        const rows = document.querySelectorAll(".preview-row");
+        // Take what was the bottom set (indices 3,4,5) — these are now visually
+        // at the top after the loop reset — and copy their colors to indices 0,1,2,
+        // then randomize the bottom set so new colors scroll in next.
+        for (let i = 0; i < 3; i++) {
+            // Copy bottom row's current colors into top row
+            rows[i].innerHTML = rows[i + 3].innerHTML;
+        }
+        // Now randomize the bottom set — these will scroll into view next cycle
+        for (let i = 3; i < 6; i++) {
+            fillRow(rows[i]);
+        }
+    });
+});
+
+
+</script>
+</body>
+</html>

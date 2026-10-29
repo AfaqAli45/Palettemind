@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+numpy
+pandas
+scikit-learn
+scikit-image
+lightgbm
+joblib
+jinja2
+pymongo
+python-multipart
+matplotlib
+ipykernel
+tqdm
